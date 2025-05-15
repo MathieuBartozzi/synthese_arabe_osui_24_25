@@ -1,0 +1,16 @@
+# Fichiers sensibles
+.env
+
+# Fichiers générés automatiquement
+rapport_final_OSUI.docx
+
+# Dossiers de travail temporaire
+raw_docs/
+seances/
+
+# Fichiers Python compilés
+__pycache__/
+*.pyc
+
+# Données source locales
+rapports.csv
