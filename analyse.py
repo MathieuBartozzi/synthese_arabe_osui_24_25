@@ -83,12 +83,14 @@ def detecter_doublons(df, seuil=0.95):
 def analyser_rapport(texte):
     try:
         completion = client.beta.chat.completions.parse(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[{
                 "role": "system",
                 "content": (
                     "Tu es conseiller pédagogique spécialisé. Analyse ce texte de rapport de visite de classe et produis :\n"
                     "- points_forts\n- difficultes_identifiees\n- pratiques_d'interet\n- recommandations_deduites"
+                    "Reste strictement fidèle aux éléments fournis. N’ajoute rien qui ne soit présent explicitement dans les données. Aucune généralisation excessive ni extrapolation.\n"
+
                 )
             }, {"role": "user", "content": texte}],
             response_format=RapportClasse
@@ -104,7 +106,10 @@ def synthese_par_etablissement(observations):
             "Tu es conseiller pédagogique. Voici un ensemble d'observations issues de rapports de visite de classe pour un établissement et pur l'enseignmement de la langue Arabe.\n"
             "Rédige une synthèse structurée en plusieurs paragraphes, incluant :\n"
             "- Points forts collectifs\n- Difficultés pédagogiques récurrentes\n- pratiques d'interet observées\n- Recommandations pour l’équipe\n"
+            "Reste strictement fidèle aux éléments fournis. N’ajoute rien qui ne soit présent explicitement dans les données. Aucune généralisation excessive ni extrapolation.\n"
             "Utilise un style professionnel, collectif et synthétique. Evite les redondances.\n"
+            "N’utilise aucun formatage Markdown ou typographique (pas de #, **, ou _). Rédige en texte brut uniquement.\n\n"
+
         )
         texte = "\n\n".join([
             f"Points forts : {o['points_forts']}\nDifficultés : {o['difficultes_identifiees']}\nPratiques : {o['pratiques_interet']}\nRecommandations : {o['recommandations_deduites']}"
@@ -112,7 +117,7 @@ def synthese_par_etablissement(observations):
         ])
 
         completion = client.beta.chat.completions.parse(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt + texte}],
             response_format=SyntheseEtab
         )
@@ -129,11 +134,14 @@ def synthese_reseau_depuis_etablissements(syntheses_etab):
             "- Identifier les convergences et spécificités\n"
             "- Extraire 3 à 5 enjeux majeurs\n"
             "- Rédiger une conclusion stratégique claire et exploitable pour la direction du reseau.\n"
+            "Reste strictement fidèle aux éléments fournis. N’ajoute rien qui ne soit présent explicitement dans les données. Aucune généralisation excessive ni extrapolation.\n"
             "Utilise un style synthétique et professionnel.\n\n"
+            "N’utilise aucun formatage Markdown ou typographique (pas de #, **, ou _). Rédige en texte brut uniquement.\n\n"
+
             + "\n\n".join(syntheses_etab)
         )
         completion = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[{"role": "user", "content": message}]
         )
         return completion.choices[0].message.content.strip()
@@ -178,11 +186,15 @@ synth_reseau = synthese_reseau_depuis_etablissements(list(synth_etab.values()))
 # === DOCUMENT FINAL ===
 doc = Document()
 doc.add_heading("Synthèse pédagogique OSUI", 0)
-doc.add_heading("1. Synthèses par établissement", level=1)
+
+# Partie 1 : Synthèse réseau
+doc.add_heading("1. Synthèse réseau", level=1)
+doc.add_paragraph(synth_reseau)
+
+# Partie 2 : Synthèses par établissement
+doc.add_heading("2. Synthèses par établissement", level=1)
 for etab, contenu in synth_etab.items():
     add_section(doc, etab, contenu)
 
-doc.add_heading("2. Synthèse réseau", level=1)
-doc.add_paragraph(synth_reseau)
 doc.save(OUTPUT_DOC)
 print("✅ Rapport final généré.")
